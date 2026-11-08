@@ -1,5 +1,11 @@
 # Claude History
 
+[![Latest release](https://img.shields.io/github/v/release/puIad/claude-history?label=release)](https://github.com/puIad/claude-history/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/puIad/claude-history/total)](https://github.com/puIad/claude-history/releases)
+![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078D6)
+![Built with Tauri and Rust](https://img.shields.io/badge/built%20with-Tauri%20%2B%20Rust-orange)
+![Offline: no network, no telemetry](https://img.shields.io/badge/offline-no%20telemetry-green)
+
 A Windows desktop app (Rust + Tauri) that keeps every Claude Code and Claude desktop session on this
 computer and shows them the way the desktop app's Code tab does. The history stays readable after a
 subscription ends, after Claude cleans up old transcripts, or after an uninstall.
@@ -75,6 +81,28 @@ bin\claude-history.exe --open <id>      open straight into a session
 bin\claude-history.exe --import <zip>   import a claude.ai data export
 bin\claude-history.exe --dump <dir>     write the UI's data as JSON (testing)
 ```
+
+## FAQ
+
+**How do I read my old Claude Code conversations after Claude deleted them?**
+Claude Code removes old transcripts from `~/.claude/projects` after a retention period. Claude History
+copies them into its own archive on every launch and never deletes from it, so run it before they
+expire. Transcripts already deleted before the first run cannot be recovered.
+
+**Can I keep my Claude chat history after cancelling my subscription?**
+Yes for anything stored on your computer (Claude Code, the Claude desktop app's Code tab, local
+Cowork). Conversations that live on Anthropic's servers are kept by importing claude.ai's data export.
+
+**Does it send my conversations anywhere?**
+No. It has no telemetry and no HTTP client; the only thing it opens online is a link you click, in
+your own browser. The archive stays on disk and is git-ignored.
+
+**Does it work on macOS or Linux?**
+Not yet. It reads the Windows locations of Claude's data (`%APPDATA%\Claude`, `~\.claude`).
+
+**Where is my archive?**
+`archive\` next to the exe, or `%LOCALAPPDATA%\Claude History\archive` for the installed copy.
+`CLAUDE_HISTORY_ARCHIVE` overrides it.
 
 ## Costs
 

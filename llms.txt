@@ -1,0 +1,20 @@
+# Claude History
+
+> Windows desktop app (Rust + Tauri) that keeps every Claude Code and Claude desktop session on a computer and shows them like the desktop app's Code tab. Offline, no telemetry. The history stays readable after a subscription ends, after Claude deletes old transcripts, or after an uninstall.
+
+## Docs
+
+- [README](https://github.com/puIad/claude-history/blob/main/README.md): install, features, archive format, headless modes, costs, build
+- [AGENTS.md](https://github.com/puIad/claude-history/blob/main/AGENTS.md): code layout, commands and rules for coding agents
+- [Latest release](https://github.com/puIad/claude-history/releases/latest): MSI installer
+
+## Source
+
+- [src-tauri/src/sync.rs](https://github.com/puIad/claude-history/blob/main/src-tauri/src/sync.rs): archive copy (add/update only)
+- [src-tauri/src/index.rs](https://github.com/puIad/claude-history/blob/main/src-tauri/src/index.rs): session index over transcripts and desktop metadata
+- [src-tauri/src/transcript.rs](https://github.com/puIad/claude-history/blob/main/src-tauri/src/transcript.rs): one session to a render model
+- [ui/js/app.js](https://github.com/puIad/claude-history/blob/main/ui/js/app.js): UI controller
+
+## Optional
+
+- [scripts/demo-data.mjs](https://github.com/puIad/claude-history/blob/main/scripts/demo-data.mjs): invented sessions used for the README screenshots
