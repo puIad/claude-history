@@ -18,7 +18,12 @@ subscription ends, after Claude cleans up old transcripts, or after an uninstall
   (messages, system tools, system prompt, MCP tools, skills, memory files, agents, free space),
   connectors, cost and tokens per model, outputs (artifacts, PRs, files created or edited), line
   changes, tasks and session facts.
-- **Usage**: spend per day, per model and per environment across the whole archive.
+- **Usage**: your plan's limits as the desktop app records them (current session, weekly, extra
+  usage, with history), then spend per day, per model and per environment at API prices.
+- **claude.ai import**: cloud conversations (including Cowork sessions, when claude.ai's export
+  contains them) are kept by importing claude.ai's data export (menu → Import claude.ai export, or
+  `--import <zip>`). Each conversation is stored once in `archive/claudeai/`; re-importing only
+  adds or updates.
 - **Search** (Ctrl K) over titles and conversation text; **Find** (Ctrl F) inside a conversation.
 - Light and dark themes, following Windows by default.
 
@@ -43,6 +48,7 @@ Headless modes:
 ```
 bin\claude-history.exe --sync           archive new history and exit (for a scheduled task)
 bin\claude-history.exe --open <id>      open straight into a session
+bin\claude-history.exe --import <zip>   import a claude.ai data export
 bin\claude-history.exe --dump <dir>     write the UI's data as JSON (testing)
 ```
 
@@ -79,7 +85,7 @@ powershell -File scripts/build.ps1     # release build into bin\ + Start menu sh
 `ui/` has no build step: plain HTML, CSS and ES modules, embedded into the exe at compile time.
 
 `node scripts/drive-app.mjs <outDir>` tests the real app end to end: it starts `bin\claude-history.exe`
-with WebView2 remote debugging, attaches Playwright over CDP and clicks through 17 checks (sidebar,
+with WebView2 remote debugging, attaches Playwright over CDP and clicks through 18 checks (sidebar,
 sessions, activity groups, thumbnails, search, find, agents, Cowork, usage, settings, sync,
 panels), saving a screenshot per step. `cargo test` covers the parsing helpers.
 `scripts/shot.mjs` screenshots the UI in headless Chrome against `--dump` data;

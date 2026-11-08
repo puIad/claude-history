@@ -176,6 +176,7 @@ $("btn-menu").onclick = (e) => showMenu([
   { label: "Search sessions", icon: "search", run: openPalette },
   { label: "Usage", icon: "chart", run: () => open("usage") },
   { label: "Archive new history now", icon: "refresh", run: startSync },
+  { label: "Import claude.ai export…", icon: "download", run: importExport },
   "-",
   { label: "Archive settings", icon: "settings", run: openSettings },
   { label: "Keyboard shortcuts", icon: "help", run: openShortcuts },
@@ -652,6 +653,18 @@ on("index-updated", (ov) => {
 });
 $("btn-sync").onclick = startSync;
 
+// ------------------------------------------------------------ claude.ai export import
+async function importExport() {
+  if (!inApp) return toast("Importing runs in the app");
+  try {
+    const r = await call("pick_and_import");
+    if (!r) return;
+    toast(`Imported ${int(r.conversations)} conversations: ${int(r.added)} new, ${int(r.updated)} updated`);
+  } catch (e) {
+    toast(String(e));
+  }
+}
+
 // ------------------------------------------------------------ settings + shortcuts
 function openSettings() {
   const o = state.overview || {};
@@ -667,6 +680,9 @@ function openSettings() {
         <dt>Kept after shrinking at the source</dt><dd>${int(ls.preserved)}</dd>
         <dt>Took</dt><dd>${duration(ls.duration_ms)}</dd>
       </dl>${(ls.errors || []).length ? `<div class="cost-sub" style="margin-top:10px">${ls.errors.map(esc).join("<br>")}</div>` : ""}</div>
+      <div class="dsec"><div class="dsec-h">Cloud conversations</div>
+        <p class="prose" style="font-size:14px">Cowork and claude.ai conversations that ran in the cloud are not stored on this computer. To keep them, request your data from claude.ai (Settings → Privacy → Export data) and import the zip you are emailed. Imported conversations appear under <b>claude.ai</b>; importing again only adds or updates.</p>
+        <button class="pill" data-import style="margin-top:4px">${icon("download", "sm")} Import claude.ai export…</button></div>
       <div class="dsec"><div class="dsec-h">Appearance</div><div class="filter-chips" style="padding:2px 0 6px">
         ${["system", "light", "dark"].map((t) => `<button class="chip ${LS.get("ch.theme", "system") === t ? "on" : ""}" data-theme-set="${t}">${t === "system" ? "Match Windows" : t[0].toUpperCase() + t.slice(1)}</button>`).join("")}
       </div></div>
@@ -683,6 +699,7 @@ function openSettings() {
       return;
     }
     if (e.target.closest("[data-sync]")) { closeOverlays(); startSync(); }
+    if (e.target.closest("[data-import]")) { closeOverlays(); importExport(); }
     const rv = e.target.closest("[data-reveal]");
     if (rv) reveal(rv.dataset.reveal);
   };
@@ -809,5 +826,5 @@ window.addEventListener("mouseup", (e) => {
   else emptyState();
   anim((g) => g.fromTo("#side-list .group, #side-list .nav-row", { opacity: 0, x: -6 }, { opacity: 1, x: 0, duration: 0.25, stagger: 0.012, ease: "power2.out" }));
   // Archive anything new since the last run, every launch.
-  startSync();
+  if (ov.auto_sync !== false) startSync();
 })();

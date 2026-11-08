@@ -142,6 +142,16 @@ await check("usage page renders the chart", async () => {
   await wait(500);
   await shot("08-usage");
 });
+await check("plan usage limits show the desktop's recorded values", async () => {
+  await page.waitForSelector("#plan-panel .plan-row", { timeout: 5000 });
+  const txt = await page.textContent("#plan-panel");
+  if (!/Current session/.test(txt) || !/All models/.test(txt) || !/% used/.test(txt)) throw new Error("rows missing");
+  const tabs = await page.locator("[data-plan-acct]").count();
+  if (tabs > 1) { await page.click('[data-plan-acct="1"]'); await wait(200); await page.click('[data-plan-acct="0"]'); }
+  await page.click('[data-plan-days="7"]');
+  await wait(200);
+  await page.locator("#plan-panel").screenshot({ path: join(out, "08b-plan.png") });
+});
 await check("settings sheet and theme switch", async () => {
   await page.click("#btn-settings");
   await page.waitForSelector("#sheet.show [data-theme-set]");

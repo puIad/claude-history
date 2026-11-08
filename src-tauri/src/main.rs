@@ -1,6 +1,7 @@
 // Release builds are GUI apps: no console window behind them.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod claudeai;
 mod index;
 mod paths;
 mod pricing;
@@ -48,6 +49,8 @@ fn overview(state: &AppState, idx: &index::Index) -> Value {
         "claude_home": paths::claude_home().map(|p| p.display().to_string()),
         // `claude-history.exe --open <session id>` opens straight into that session
         "open": std::env::args().skip_while(|a| a != "--open").nth(1),
+        // CLAUDE_HISTORY_NO_AUTOSYNC=1 (tests, a second archive) skips the sync on launch
+        "auto_sync": std::env::var("CLAUDE_HISTORY_NO_AUTOSYNC").is_err(),
     })
 }
 
@@ -112,6 +115,29 @@ async fn usage(state: State<'_, AppState>) -> Result<Value, String> {
     Ok(idx.usage())
 }
 
+/// Pick a claude.ai export (zip or conversations.json) and import it.
+#[tauri::command]
+async fn pick_and_import(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
+    use tauri_plugin_dialog::DialogExt;
+    let picked = app
+        .dialog()
+        .file()
+        .set_title("Import a claude.ai data export")
+        .add_filter("claude.ai export", &["zip", "json"])
+        .blocking_pick_file();
+    let Some(fp) = picked else { return Ok(Value::Null) };
+    let path = fp.into_path().map_err(|e| e.to_string())?;
+    let rep = claudeai::import(&state.archive, &path)?;
+    // reindex so the conversations show up
+    let cache = state.current().map(|i| i.scans.clone()).unwrap_or_else(|| index::load_scan_cache(&state.archive));
+    let built = Arc::new(index::build(&state.archive, cache, &|_, _| {}));
+    if let Ok(mut g) = state.index.write() {
+        *g = Some(built.clone());
+    }
+    let _ = app.emit("index-updated", overview(&state, &built));
+    Ok(serde_json::to_value(rep).unwrap_or(Value::Null))
+}
+
 #[tauri::command]
 fn open_url(app: AppHandle, url: String) -> Result<(), String> {
     if !(url.starts_with("https://") || url.starts_with("http://")) {
@@ -134,7 +160,7 @@ fn reveal_path(app: AppHandle, path: String) -> Result<(), String> {
 ///   --dump <dir> [keys..]  write the UI's data as JSON files (development and testing)
 fn cli(archive: &std::path::Path, args: &[String]) -> Option<i32> {
     let has = |f: &str| args.iter().any(|a| a == f);
-    if !has("--sync") && !has("--dump") {
+    if !has("--sync") && !has("--dump") && !has("--import") {
         return None;
     }
     // Release builds have no console of their own; borrow the terminal's.
@@ -163,6 +189,22 @@ fn cli(archive: &std::path::Path, args: &[String]) -> Option<i32> {
             eprintln!("  {}", e);
         }
         return Some(if r.errors.is_empty() { 0 } else { 2 });
+    }
+    if let Some(i) = args.iter().position(|a| a == "--import") {
+        let Some(src) = args.get(i + 1) else {
+            eprintln!("usage: claude-history --import <claude.ai export .zip or conversations.json>");
+            return Some(2);
+        };
+        return Some(match claudeai::import(archive, std::path::Path::new(src)) {
+            Ok(r) => {
+                println!("{} conversations: {} added, {} updated, {} unchanged", r.conversations, r.added, r.updated, r.unchanged);
+                0
+            }
+            Err(e) => {
+                eprintln!("import failed: {}", e);
+                1
+            }
+        });
     }
     if let Some(i) = args.iter().position(|a| a == "--dump") {
         let out = PathBuf::from(args.get(i + 1).cloned().unwrap_or_else(|| "dump".into()));
@@ -212,6 +254,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState { archive, index: RwLock::new(None), syncing: AtomicBool::new(false) })
         .invoke_handler(tauri::generate_handler![
             bootstrap,
@@ -221,7 +264,8 @@ fn main() {
             search,
             usage,
             open_url,
-            reveal_path
+            reveal_path,
+            pick_and_import
         ])
         .run(tauri::generate_context!())
         .expect("error while running Claude History");

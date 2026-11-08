@@ -63,6 +63,7 @@ export class Sidebar {
   rowHtml(s, side = false) {
     const badge = s.source === "cli" ? `<span class="badge-ico" title="Terminal session">${icon("terminal", "xs")}</span>`
       : s.source === "cowork-cloud" ? `<span class="badge-ico" title="Cowork session that ran in the cloud">${icon("cloud", "xs")}</span>`
+      : s.source === "claudeai" ? `<span class="badge-ico" title="Imported from a claude.ai export">${icon("download", "xs")}</span>`
       : s.scheduled ? `<span class="badge-ico" title="Routine">${icon("clock", "xs")}</span>` : "";
     const cls = ["srow", side ? "side" : "", s.archived ? "archived" : "", s.key === this.active ? "active" : ""].join(" ");
     const tip = `${s.title}\n${dateTime(s.updated_ms)}${s.cost_usd ? " · " + money(s.cost_usd) : ""}${s.model_name ? " · " + s.model_name : ""}`;

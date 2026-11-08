@@ -737,6 +737,9 @@ pub struct Index {
     pub scans: HashMap<String, Scan>,
     pub presets: Vec<Preset>,
     pub built_ms: i64,
+    pub archive: Option<PathBuf>,
+    /// lowercased text of imported claude.ai conversations, by session key
+    pub extra_search: HashMap<String, String>,
 }
 
 fn cache_path(archive: &Path) -> PathBuf {
@@ -1076,6 +1079,34 @@ pub fn build(archive: &Path, mut cache: HashMap<String, Scan>, progress: &(dyn F
     // computer (session id, space, granted folders). List them so the history is complete.
     sessions.extend(cloud_cowork(archive, &claimed));
 
+    // Conversations imported from a claude.ai data export.
+    let mut extra_search: HashMap<String, String> = HashMap::new();
+    for c in crate::claudeai::summaries(archive) {
+        let uuid = str_of(&c, "uuid");
+        if uuid.is_empty() {
+            continue;
+        }
+        let key = format!("claudeai:{}", uuid);
+        let first = str_of(&c, "first");
+        let name = str_of(&c, "name");
+        extra_search.insert(key.clone(), str_of(&c, "search"));
+        let project = str_of(&c, "project");
+        sessions.push(SessionSummary {
+            key,
+            source: "claudeai".into(),
+            title: if name.trim().is_empty() { fallback_title(&first) } else { name },
+            group: "claude.ai".into(),
+            created_ms: c.get("created").and_then(|x| x.as_i64()).unwrap_or(0),
+            updated_ms: c.get("updated").and_then(|x| x.as_i64()).unwrap_or(0),
+            prompts: c.get("prompts").and_then(|x| x.as_u64()).unwrap_or(0) as u32,
+            first_prompt: first,
+            model: str_of(&c, "model"),
+            summary: if project.is_empty() { String::new() } else { format!("Project: {}", project) },
+            has_transcript: true,
+            ..Default::default()
+        });
+    }
+
     for s in sessions.iter_mut() {
         s.model_name = if s.model.is_empty() { String::new() } else { pricing::display_name(&s.model) };
         s.context_window = if s.model.is_empty() { 200_000 } else { pricing::context_window(&s.model) };
@@ -1094,6 +1125,8 @@ pub fn build(archive: &Path, mut cache: HashMap<String, Scan>, progress: &(dyn F
         scans: cache,
         presets,
         built_ms: crate::sync::now_ms(),
+        archive: Some(archive.to_path_buf()),
+        extra_search,
     }
 }
 
@@ -1175,6 +1208,40 @@ fn fallback_title(first_prompt: &str) -> String {
 }
 
 impl Index {
+    /// The desktop app samples plan usage every ~15 minutes into plan-usage-history.json:
+    /// fh = current 5-hour session %, sd = weekly %, xu = extra-usage spend %.
+    /// Merged per organisation across both profiles, oldest first.
+    pub fn plan_usage(&self) -> Value {
+        let Some(archive) = &self.archive else { return Value::Null };
+        let mut per_org: BTreeMap<String, (BTreeMap<i64, Value>, HashMap<String, u32>)> = BTreeMap::new();
+        let Ok(rd) = fs::read_dir(archive.join("desktop")) else { return Value::Null };
+        for prof in rd.flatten() {
+            let name = prof.file_name().to_string_lossy().to_string();
+            let Ok(txt) = fs::read_to_string(prof.path().join("plan-usage-history.json")) else { continue };
+            let Ok(v) = serde_json::from_str::<Value>(&txt) else { continue };
+            for s in v.get("samples").and_then(|x| x.as_array()).cloned().unwrap_or_default() {
+                let org = str_of(&s, "org");
+                let t = s.get("t").and_then(|x| x.as_i64()).unwrap_or(0);
+                if org.is_empty() || t == 0 {
+                    continue;
+                }
+                let u = s.get("u").cloned().unwrap_or(Value::Null);
+                let e = per_org.entry(org).or_default();
+                e.0.insert(t, serde_json::json!([t, u.get("fh"), u.get("sd"), u.get("xu")]));
+                *e.1.entry(name.clone()).or_default() += 1;
+            }
+        }
+        let orgs: Vec<Value> = per_org
+            .into_iter()
+            .map(|(org, (samples, profs))| {
+                let profile = profs.into_iter().max_by_key(|(_, n)| *n).map(|(p, _)| p).unwrap_or_default();
+                serde_json::json!({"org": org, "profile": profile, "samples": samples.into_values().collect::<Vec<_>>()})
+            })
+            .filter(|o| o["samples"].as_array().map(|a| a.len() > 2).unwrap_or(false))
+            .collect();
+        Value::Array(orgs)
+    }
+
     pub fn scan_for(&self, archive: &Path, id: &str) -> Option<&Scan> {
         let p = self.transcripts.get(id)?;
         self.scans.get(&rel_key(archive, p))
@@ -1189,6 +1256,20 @@ impl Index {
         for s in &self.sessions {
             let mut hit_title = s.title.to_lowercase().contains(&q);
             let mut snippet = String::new();
+            if let Some(text) = self.extra_search.get(&s.key) {
+                if let Some(i) = text.find(&q) {
+                    let mut a = i.saturating_sub(60);
+                    while !text.is_char_boundary(a) {
+                        a -= 1;
+                    }
+                    let mut b = (i + q.len() + 100).min(text.len());
+                    while !text.is_char_boundary(b) {
+                        b -= 1;
+                    }
+                    snippet = text[a..b].replace('\n', " ");
+                    hit_title = true;
+                }
+            }
             for id in &s.cli_ids {
                 let Some(sc) = self.scan_for(archive, id) else { continue };
                 if let Some(i) = sc.search.find(&q) {
@@ -1263,6 +1344,7 @@ impl Index {
             .map(|(k, (c, n))| serde_json::json!({"group": k, "cost": c, "sessions": n}))
             .collect();
         serde_json::json!({"days": days_v, "models": models_v, "groups": groups_v,
+            "plan": self.plan_usage(),
             "sessions": self.sessions.len(),
             "total_cost": self.sessions.iter().map(|s| s.cost_usd).sum::<f64>()})
     }

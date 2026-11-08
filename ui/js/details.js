@@ -57,7 +57,7 @@ function costSection(s, cost) {
     .map((m) => `<div class="mrow"><div class="top"><span>${esc(m.model)}</span><span class="r">${money(m.cost)}</span></div>
       <div class="toks"><span>Input <b>${tokens(m.input)}</b></span><span>Output <b>${tokens(m.output)}</b></span><span>Cache read <b>${tokens(m.cache_read)}</b></span><span>Cache write <b>${tokens(m.cache_write)}</b></span><span>Replies <b>${int(m.messages)}</b></span></div></div>`)
     .join("");
-  const note = cost.estimated ? "Estimated at API list prices" : "As tracked by Claude Code";
+  const note = cost.subscription ? "claude.ai exports carry no token counts" : cost.estimated ? "Estimated at API list prices" : "As tracked by Claude Code";
   const times = [
     cost.wall_ms ? `<div class="drow"><span class="grow muted">Session time</span><span class="r">${duration(cost.wall_ms)}</span></div>` : "",
     cost.api_ms ? `<div class="drow"><span class="grow muted">Time waiting on the API</span><span class="r">${duration(cost.api_ms)}</span></div>` : "",
@@ -95,8 +95,9 @@ export function detailsHtml(data) {
   const env = d.env || {};
   const folderName = base(env.group_cwd || env.cwd) || env.group;
   const envSec = `<div class="dsec" id="d-env"><div class="dsec-h">Environment</div>
-    <div class="drow">${icon(env.source === "cowork-cloud" ? "cloud" : "laptop", "sm")}<span class="grow">${esc(env.group || "Local")}</span>${env.source === "cowork-cloud" ? `<span class="r">Cloud</span>` : env.source === "cli" ? `<span class="r">Terminal</span>` : env.profile ? `<span class="r">${esc(env.profile === "Claude" ? "Desktop" : env.profile)}</span>` : ""}</div>
+    <div class="drow">${icon(env.source === "cowork-cloud" || env.source === "claudeai" ? "cloud" : "laptop", "sm")}<span class="grow">${esc(env.group || "Local")}</span>${env.source === "claudeai" ? `<span class="r">Imported</span>` : env.source === "cowork-cloud" ? `<span class="r">Cloud</span>` : env.source === "cli" ? `<span class="r">Terminal</span>` : env.profile ? `<span class="r">${esc(env.profile === "Claude" ? "Desktop" : env.profile)}</span>` : ""}</div>
     ${env.cwd ? `<div class="drow link" data-reveal="${esc(env.cwd)}" title="${esc(env.cwd)}">${icon("folder", "sm")}<span class="grow">${esc(folderName)} <span class="muted">· ${esc(shortPath(env.cwd, 34))}</span></span></div>` : ""}
+    ${env.project ? `<div class="drow">${icon("folder", "sm")}<span class="grow">Project · ${esc(env.project)}</span></div>` : ""}
     ${env.branch ? `<div class="drow">${icon("branch", "sm")}<span class="grow">${esc(env.branch)}</span>${env.worktree ? `<span class="r">worktree</span>` : ""}</div>` : ""}
     <div class="drow">${icon("monitor", "sm")}<span class="grow">Remote Control</span><span class="toggle ${env.remote_control ? "on" : ""}" title="${env.remote_control ? "Was on for this session" : "Was off"}"></span></div>
   </div>`;

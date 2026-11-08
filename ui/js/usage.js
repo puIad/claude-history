@@ -1,6 +1,7 @@
 // Usage view: spend and tokens across the whole archive, by day, model and environment.
 import { esc, money, tokens, int } from "./format.js";
 import { icon } from "./icons.js";
+import { planHtml } from "./plan.js";
 
 const MODEL_COLORS = ["#d97757", "#7fb2f0", "#79c46a", "#e9b949", "#a99cf5", "#e58fb5", "#6fd0c4", "#b8b6ad"];
 
@@ -70,7 +71,9 @@ export function renderUsage(el, u, range = "90") {
 
   el.innerHTML = `<div class="usage">
     <h1>Usage</h1>
-    <div class="lede">Everything in your local archive, priced at API list rates. A subscription bills differently, so treat this as what the same work would cost on the API.</div>
+    <div class="lede">Your plan's limits as the desktop app last recorded them, and everything in your local archive priced at API list rates.</div>
+    <div id="plan-slot">${planHtml(u.plan, renderUsage.acct || 0, renderUsage.days || 7, width - 0)}</div>
+    <h2 class="usage-h2">Spend at API prices</h2>
     <div class="tiles">
       <div class="tile"><div class="k">Total</div><div class="v">${money(total, 0)}</div><div class="s">${int(u.sessions)} sessions</div></div>
       <div class="tile"><div class="k">Last 30 days</div><div class="v">${money(last30, 0)}</div><div class="s">${money(last30 / 30)} a day on average</div></div>
@@ -112,4 +115,12 @@ export function renderUsage(el, u, range = "90") {
   });
   chartEl.addEventListener("mouseleave", () => (tip.style.opacity = 0));
   el.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => renderUsage(el, u, b.dataset.range)));
+  const slot = el.querySelector("#plan-slot");
+  const redrawPlan = () => (slot.innerHTML = planHtml(u.plan, renderUsage.acct || 0, renderUsage.days || 7, width));
+  slot.addEventListener("click", (e) => {
+    const a = e.target.closest("[data-plan-acct]");
+    if (a) { renderUsage.acct = Number(a.dataset.planAcct); redrawPlan(); }
+    const d = e.target.closest("[data-plan-days]");
+    if (d) { renderUsage.days = Number(d.dataset.planDays); redrawPlan(); }
+  });
 }

@@ -769,6 +769,22 @@ fn connectors(desk: Option<&DesktopSession>) -> Value {
 pub fn load(archive: &Path, idx: &Index, key: &str) -> Option<Value> {
     let &i = idx.by_key.get(key)?;
     let sum: &SessionSummary = &idx.sessions[i];
+    if sum.source == "claudeai" {
+        let (items, meta) = crate::claudeai::load(archive, key.trim_start_matches("claudeai:"))?;
+        let details = json!({
+            "context": Value::Null,
+            "cost": {"total": 0.0, "estimated": true, "estimate_total": 0.0, "by_model": [], "subscription": true},
+            "outputs": {"artifacts": [], "files": [], "prs": []},
+            "changes": {"added": 0, "removed": 0},
+            "plan": Value::Null, "todos": Value::Null, "tools": {}, "subagents": [],
+            "env": {"group": "claude.ai", "source": "claudeai", "cwd": "", "branch": "", "versions": [],
+                    "project": meta.get("project")},
+            "connectors": [],
+            "time": {"first": meta.get("first"), "last": meta.get("last")},
+            "summary": Value::Null, "missing": [],
+        });
+        return Some(json!({"session": sum, "items": items, "details": details}));
+    }
     let desk = idx.desktop.get(key);
     let mut ctx = Ctx::new(archive);
     let ids = &sum.cli_ids;

@@ -621,3 +621,23 @@ li.doing .tick { border-color: var(--clay); box-shadow: inset 0 0 0 3px var(--pa
 .thought summary:hover { color: var(--text-2); }
 .thought[open] summary .chev { transform: rotate(90deg); }
 .thought .prose { color: var(--text-2); font-size: 14px; border-left: 2px solid var(--line); padding-left: 14px; margin-top: 8px; }
+
+/* plan usage limits (desktop app layout: label + caption, bar, "N% used") */
+:root { --plan-blue: #2c84db; }
+.plan h3 { margin-bottom: 16px; }
+.plan-row { display: grid; grid-template-columns: minmax(170px, 34%) 1fr 92px; align-items: center; gap: 18px; padding: 8px 0; }
+.pl-label { font-size: 14.5px; color: var(--text); }
+.pl-cap { font-size: 12.5px; color: var(--text-3); margin-top: 2px; }
+.pbar { height: 8px; border-radius: 6px; background: var(--press); overflow: hidden; }
+.pbar span { display: block; height: 100%; border-radius: 6px; background: var(--plan-blue); transition: width .5s var(--ease); }
+.pbar.warning span { background: var(--yellow); }
+.pbar.danger span { background: #e06a5d; }
+.pv { text-align: right; font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; }
+.plan-group { font-size: 13px; color: var(--text-3); margin: 16px 0 2px; padding-top: 14px; border-top: 1px solid var(--seam); }
+.plan-hist { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--seam); }
+.plan-hist-h { display: flex; align-items: center; gap: 16px; font-size: 12.5px; color: var(--text-3); margin-bottom: 8px; }
+.plan-hist-h i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.plan-hist-h i.dash { background: repeating-linear-gradient(90deg, var(--text-4) 0 3px, transparent 3px 6px); }
+.plan-hist-h .r { margin-left: auto; display: flex; gap: 4px; }
+.plan-hist svg { display: block; overflow: visible; }
+.usage-h2 { font-size: 15px; font-weight: 500; margin: 28px 0 12px; color: var(--text); }
