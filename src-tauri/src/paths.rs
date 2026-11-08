@@ -2,17 +2,24 @@
 
 use std::path::{Path, PathBuf};
 
-/// The archive root. `CLAUDE_HISTORY_ARCHIVE` overrides it; otherwise it is the
-/// `archive/` folder next to `src-tauri/` (baked in at compile time, so the exe
-/// keeps finding it wherever it is launched from).
+/// The archive root. `CLAUDE_HISTORY_ARCHIVE` overrides it. On the machine that
+/// built the exe it is the `archive/` folder next to `src-tauri/` (baked in at
+/// compile time); anywhere else (an installed copy) it is
+/// `%LOCALAPPDATA%\Claude History\archive`.
 pub fn archive_root() -> PathBuf {
     if let Ok(p) = std::env::var("CLAUDE_HISTORY_ARCHIVE") {
         if !p.trim().is_empty() {
             return PathBuf::from(p);
         }
     }
-    let baked = Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("archive");
-    normalize(&baked)
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
+    if manifest.is_dir() {
+        return normalize(&manifest.join("..").join("archive"));
+    }
+    dirs::data_local_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("Claude History")
+        .join("archive")
 }
 
 fn normalize(p: &Path) -> PathBuf {

@@ -4,6 +4,14 @@ A Windows desktop app (Rust + Tauri) that keeps every Claude Code and Claude des
 computer and shows them the way the desktop app's Code tab does. The history stays readable after a
 subscription ends, after Claude cleans up old transcripts, or after an uninstall.
 
+## Install
+
+Download `Claude History_<version>_x64_en-US.msi` from the
+[latest release](https://github.com/puIad/claude-history/releases/latest) and run it. It installs
+to `Program Files\Claude History`, adds a Start menu entry, and installs WebView2 if Windows lacks
+it. The installed app keeps its archive in `%LOCALAPPDATA%\Claude History\archive`. The installer
+does not include the desktop app's fonts, so text uses system fonts.
+
 ## What it shows
 
 - **Sidebar**: sessions grouped by environment (the desktop app's presets, else the project folder),
@@ -80,7 +88,11 @@ rustup default stable-x86_64-pc-windows-gnu
 npm install && npm run vendor          # UI libraries into ui/vendor
 python scripts/import-fonts.py         # the desktop app's fonts from its local cache (optional)
 powershell -File scripts/build.ps1     # release build into bin\ + Start menu shortcut
+powershell -File scripts/build-msi.ps1 # installer into src-tauri\target\release\bundle\msi\
 ```
+
+`build-msi.ps1` moves `ui/fonts` aside during the build so the installer never ships them; the
+Tauri CLI downloads WiX 3 on first use.
 
 `ui/` has no build step: plain HTML, CSS and ES modules, embedded into the exe at compile time.
 
