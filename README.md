@@ -6,7 +6,7 @@ subscription ends, after Claude cleans up old transcripts, or after an uninstall
 
 ## Install
 
-Download `Claude History_<version>_x64_en-US.msi` from the
+Download the `.msi` file from the
 [latest release](https://github.com/puIad/claude-history/releases/latest) and run it. It installs
 to `Program Files\Claude History`, adds a Start menu entry, and installs WebView2 if Windows lacks
 it. The installed app keeps its archive in `%LOCALAPPDATA%\Claude History\archive`. The installer
