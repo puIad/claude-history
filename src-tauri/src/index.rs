@@ -1072,6 +1072,10 @@ pub fn build(archive: &Path, mut cache: HashMap<String, Scan>, progress: &(dyn F
         sessions.push(sum);
     }
 
+    // Cowork sessions that ran in Anthropic's cloud: only their metadata is on this
+    // computer (session id, space, granted folders). List them so the history is complete.
+    sessions.extend(cloud_cowork(archive, &claimed));
+
     for s in sessions.iter_mut() {
         s.model_name = if s.model.is_empty() { String::new() } else { pricing::display_name(&s.model) };
         s.context_window = if s.model.is_empty() { 200_000 } else { pricing::context_window(&s.model) };
@@ -1091,6 +1095,71 @@ pub fn build(archive: &Path, mut cache: HashMap<String, Scan>, progress: &(dyn F
         presets,
         built_ms: crate::sync::now_ms(),
     }
+}
+
+fn cloud_cowork(archive: &Path, claimed: &HashSet<String>) -> Vec<SessionSummary> {
+    let mut spaces: HashMap<String, String> = HashMap::new();
+    let mut entries: Vec<(Value, i64, String)> = Vec::new();
+    let Ok(rd) = fs::read_dir(archive.join("desktop")) else { return Vec::new() };
+    for prof in rd.flatten() {
+        let mut files = Vec::new();
+        walk_files(
+            &prof.path().join("local-agent-mode-sessions"),
+            &|p: &Path| {
+                let n = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+                n == "spaces.json" || n == "remote-session-spaces.json"
+            },
+            &mut files,
+        );
+        for f in files {
+            let Ok(v) = fs::read_to_string(&f).map(|t| serde_json::from_str::<Value>(&t).unwrap_or(Value::Null)) else { continue };
+            let mtime = fs::metadata(&f).map(|m| mtime_ms(&m)).unwrap_or(0);
+            if let Some(arr) = v.get("spaces").and_then(|x| x.as_array()) {
+                for s in arr {
+                    spaces.insert(str_of(s, "id"), str_of(s, "name"));
+                }
+            }
+            if let Some(arr) = v.get("entries").and_then(|x| x.as_array()) {
+                for e in arr {
+                    entries.push((e.clone(), mtime, prof.file_name().to_string_lossy().to_string()));
+                }
+            }
+        }
+    }
+    let mut out: Vec<SessionSummary> = Vec::new();
+    for (e, mtime, profile) in entries {
+        let id = str_of(&e, "sessionId");
+        if id.is_empty() || claimed.contains(&id) || out.iter().any(|s| s.key == id) {
+            continue;
+        }
+        let folder = e
+            .get("folders")
+            .and_then(|x| x.as_array())
+            .and_then(|a| a.first())
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        let space = spaces.get(&str_of(&e, "spaceId")).cloned().unwrap_or_default();
+        let place = if !space.is_empty() { space.clone() } else { paths::basename(&folder) };
+        out.push(SessionSummary {
+            key: id.clone(),
+            source: "cowork-cloud".into(),
+            profile,
+            cli_id: String::new(),
+            cli_ids: Vec::new(),
+            title: if place.is_empty() { "Cowork session".into() } else { format!("Cowork session in {}", place) },
+            group: "Cowork".into(),
+            group_cwd: folder.clone(),
+            cwd: folder,
+            // The session's own dates live in the cloud; the metadata file's time is the best local clue.
+            updated_ms: mtime,
+            created_ms: 0,
+            summary: if space.is_empty() { String::new() } else { format!("Space: {}", space) },
+            has_transcript: false,
+            ..Default::default()
+        });
+    }
+    out
 }
 
 fn fallback_title(first_prompt: &str) -> String {

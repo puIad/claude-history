@@ -329,7 +329,11 @@ async function showSession(key) {
   let start = Math.max(0, turns.length - FIRST);
   let html = "";
   for (let i = start; i < turns.length; i++) html += render(i);
-  if (!turns.length) html = `<div class="empty-state" style="height:60vh"><div><h2 style="font-size:22px">No messages</h2><p>This session's transcript is empty or was removed before it was archived.</p></div></div>`;
+  if (!turns.length && sess.source === "cowork-cloud") {
+    html = `<div class="empty-state" style="height:62vh"><div style="max-width:470px"><div class="card-ico" style="margin:0 auto 16px;width:44px;height:44px">${icon("cloud")}</div><h2 style="font-size:24px">This Cowork session ran in the cloud</h2>
+      <p style="line-height:1.6">Its conversation is stored on Anthropic's servers, not on this computer, so there is nothing here to keep. What this computer recorded about it is kept: the space, the folder it was given and its session ID.</p>
+      <p style="margin-top:14px;font-family:var(--font-mono);font-size:12.5px;color:var(--text-4)">${esc(sess.key)}</p></div></div>`;
+  } else if (!turns.length) html = `<div class="empty-state" style="height:60vh"><div><h2 style="font-size:22px">No messages</h2><p>This session's transcript is empty or was removed before it was archived.</p></div></div>`;
   inner.innerHTML = html;
   thread.innerHTML = "";
   thread.appendChild(inner);
@@ -401,6 +405,20 @@ thread.addEventListener("scroll", () => {
   toBottom.classList.toggle("show", far && state.current !== "usage");
 });
 toBottom.onclick = () => thread.scrollTo({ top: thread.scrollHeight, behavior: reduceMotion ? "auto" : "smooth" });
+
+// hover preview for activity thumbnails
+document.addEventListener("mouseover", (e) => {
+  const img = e.target.closest?.(".thumbs img");
+  const peek = $("peek");
+  if (!img) { peek.classList.remove("show"); return; }
+  $("peek-img").src = img.src;
+  $("peek-cap").textContent = img.dataset.cap || "";
+  const r = img.getBoundingClientRect();
+  peek.classList.add("show");
+  const pw = peek.offsetWidth, ph = peek.offsetHeight;
+  peek.style.left = Math.max(8, Math.min(innerWidth - pw - 8, r.right - pw)) + "px";
+  peek.style.top = (r.bottom + 8 + ph < innerHeight ? r.bottom + 8 : Math.max(8, r.top - ph - 8)) + "px";
+});
 
 // transcript interactions (the main thread and agent transcripts share them)
 function transcriptClick(e, ctx, cliId, cwd) {
@@ -517,7 +535,7 @@ function openPalette() {
   const inp = $("palette-input");
   inp.value = "";
   paletteResults("");
-  setTimeout(() => inp.focus(), 10);
+  inp.focus();
   anim((g) => g.fromTo("#palette", { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.18, ease: "power2.out" }));
 }
 $("btn-search").onclick = openPalette;

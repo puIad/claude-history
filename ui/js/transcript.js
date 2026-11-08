@@ -66,7 +66,7 @@ function phrase(cat, list) {
   switch (cat) {
     case "cmd": return n === 1 ? "ran a command" : `ran ${n} commands`;
     case "bg": return n === 1 ? "checked a background task" : `checked ${n} background tasks`;
-    case "read": { const u = uniq("file_path"); return u === 1 ? "read a file" : `read ${u} files`; }
+    case "read": { const u = uniq("file_path"); return u === 1 ? `read ${base(list[0].input?.file_path) || "a file"}` : `read ${u} files`; }
     case "write": { const u = uniq("file_path"); return u === 1 ? "created a file" : `created ${u} files`; }
     case "edit": { const u = uniq("file_path"); return u === 1 ? "edited a file" : `edited ${u} files`; }
     case "search": return n === 1 ? "searched code" : `searched code ${n} times`;
@@ -87,9 +87,27 @@ function phrase(cat, list) {
   }
 }
 
+// Command descriptions are written as instructions ("Apply fixes"); the app shows
+// them as what happened ("Applied fixes"). Unknown first words stay as written.
+const IRREGULAR = { run: "Ran", rerun: "Reran", "re-run": "Re-ran", read: "Read", reread: "Reread", write: "Wrote", rewrite: "Rewrote", build: "Built", rebuild: "Rebuilt", find: "Found", make: "Made", get: "Got", set: "Set", put: "Put", take: "Took", send: "Sent", begin: "Began", undo: "Undid", split: "Split", cut: "Cut", keep: "Kept", lose: "Lost", feed: "Fed" };
+const REGULAR = new Set("add apply check fix update remove delete install create render test list inspect verify search extract copy move rename open close start stop kill launch compile convert generate download fetch query count show print push pull commit merge deploy publish clean sync dump scan measure compare capture screenshot rasterize export import look locate retry wait enable disable configure tail grep diff validate parse crop resize save load upload restore reset revert stage mark use try confirm review probe trace map patch format lint bump tag pin unpin archive unarchive close reopen collect gather summarize decode encode decompress unzip zip clone fork prune watch poll ping call invoke trigger kick refresh reload restart serve preview print sort filter dedupe split join".split(" "));
+function pastTense(text) {
+  const m = /^([A-Za-z-]+)(.*)$/s.exec(text || "");
+  if (!m) return text;
+  const w = m[1].toLowerCase();
+  if (IRREGULAR[w]) return IRREGULAR[w] + m[2];
+  if (!REGULAR.has(w)) return text;
+  let p;
+  if (w.endsWith("e")) p = w + "d";
+  else if (/[^aeiou]y$/.test(w)) p = w.slice(0, -1) + "ied";
+  else if (/^(stop|ping|pin|unpin|tag|drop|grep|plan|zip|unzip|map|patch|ship)$/.test(w) && !w.endsWith("ch")) p = /(p|g|n)$/.test(w) && !/patch|ping/.test(w) ? w + w.slice(-1) + "ed" : w + "ed";
+  else p = w + "ed";
+  return p.charAt(0).toUpperCase() + p.slice(1) + m[2];
+}
+
 function groupLabel(blocks) {
-  const note = blocks.find((b) => b.type === "thinking" && b.text && b.text.trim());
-  if (note) return note.text.trim().split("\n")[0].replace(/[.:]\s*$/, "");
+  const tools = blocks.filter((b) => b.type === "tool");
+  if (tools.length === 1 && tools[0].input?.description && /^(Bash|PowerShell)$/.test(tools[0].name)) return pastTense(tools[0].input.description);
   const order = [];
   const by = new Map();
   for (const b of blocks) {
@@ -108,7 +126,7 @@ function stepHead(b) {
   const n = b.name || "";
   const inp = b.input || {};
   const code = (s) => `<code>${esc(String(s).split("\n")[0].slice(0, 160))}</code>`;
-  if (n === "Bash" || n === "PowerShell") return [inp.description || (n === "Bash" ? "Ran a command" : "Ran PowerShell"), code(inp.command || "")];
+  if (n === "Bash" || n === "PowerShell") return [inp.description ? pastTense(inp.description) : n === "Bash" ? "Ran a command" : "Ran PowerShell", code(inp.command || "")];
   if (n === "Read") return ["Read", esc(base(inp.file_path)) + (inp.offset ? ` <span>· from line ${inp.offset}</span>` : "")];
   if (n === "Write") return ["Created", esc(base(inp.file_path))];
   if (n === "Edit" || n === "MultiEdit") return ["Edited", esc(base(inp.file_path))];
@@ -170,6 +188,7 @@ function imagesHtml(list) {
   return `<div class="imgs">${list.map((s) => `<img src="${esc(s)}" data-zoom loading="lazy" alt="">`).join("")}</div>`;
 }
 
+export { pastTense };
 export function stepDetail(b, ctx) {
   const n = b.name || "";
   const inp = b.input || {};
@@ -222,11 +241,11 @@ function groupHtml(blocks, gid) {
   const label = groupLabel(blocks);
   const imgs = tools.flatMap((b) => (b.result?.images || [])).slice(-3);
   const errs = tools.filter((b) => b.result?.error).length;
-  const thumbs = imgs.length ? `<span class="thumbs">${imgs.map((s) => `<img src="${esc(s)}" alt="">`).join("")}</span>` : "";
+  const imgTools = tools.flatMap((b) => (b.result?.images || []).map(() => b.name)).slice(-3);
+  const thumbs = imgs.length ? `<span class="thumbs">${imgs.map((s, i) => `<img src="${esc(s)}" data-cap="${esc(stepHead({ name: imgTools[i] || "", input: {} })[0])}" alt="">`).join("")}</span>` : "";
   const err = errs ? `<span class="err">${plural(errs, "error")}</span>` : "";
-  const notes = blocks.filter((b) => b.type === "thinking" && b.text && b.text.trim()).slice(1);
-  const body = tools.map(stepHtml).join("") + notes.map((t) => `<div class="sysrow">${icon("brain", "xs")} ${esc(t.text.trim())}</div>`).join("");
-  if (!tools.length && !notes.length) return "";
+  const body = tools.map(stepHtml).join("");
+  if (!tools.length) return "";
   return `<div class="steps" data-group="${gid}"><button class="steps-h"><span class="lbl">${esc(label)}</span>${icon("chevRight", "sm chev")}${err}${thumbs}</button><div class="steps-body">${body}</div></div>`;
 }
 
@@ -265,13 +284,14 @@ function questionCard(b) {
   return `<div class="card qcard"><div class="card-h">${icon("help", "sm")} ${status}</div>${body}</div>`;
 }
 
-function artifactCard(b) {
+function artifactCard(b, ctx) {
   const inp = b.input || {};
   const r = b.result || {};
-  const url = (r.text || "").match(/https:\/\/claude\.ai\/(?:code\/)?artifact\/[\w-]+/)?.[0] || "";
-  const title = inp.title || (r.text || "").match(/"title"\s*:\s*"([^"]+)"/)?.[1] || base(inp.file_path || "") || "Artifact";
+  const url = (r.text || "").match(/https:\/\/claude\.ai\/(?:code\/)?artifact\/[\w-]+/)?.[0] || inp.url || "";
+  const known = (ctx?.artifacts || []).find((a) => (url && a.url === url) || (inp.file_path && a.path && base(a.path) === base(inp.file_path)));
+  const title = inp.title || known?.title || (r.text || "").match(/"title"\s*:\s*"([^"]+)"/)?.[1] || base(inp.file_path || "") || "Artifact";
   const state = r.error ? "Failed" : inp.url ? "Updated" : "Published";
-  return `<button class="artifact-chip" ${url ? `data-href="${esc(url)}"` : ""}>${icon("layers", "sm")}<span>${esc(title)}</span><span class="t2">${state}</span>${icon("chevRight", "sm")}</button>`;
+  return `<button class="artifact-chip" ${url ? `data-href="${esc(url)}"` : ""}>${icon("copy", "sm")}<span>${esc(title)}</span><span class="t2">${state}</span>${icon("chevRight", "sm")}</button>`;
 }
 
 function wrapCard(b) {
@@ -291,12 +311,12 @@ function planModeCard(b) {
   return `<div class="card"><div class="card-h">${icon("list", "sm")} Plan</div><div class="prose" style="padding:4px 16px 12px;font-size:14.5px">${md(b.input?.plan || "")}</div></div>`;
 }
 
-function cardHtml(b) {
+function cardHtml(b, ctx) {
   const n = b.name || "";
   if (n === "AskUserQuestion") return questionCard(b);
   if (n === "TodoWrite") return taskCard(b.input?.todos, "To-dos");
   if (n === "ExitPlanMode") return planModeCard(b);
-  if (n === "Artifact") return artifactCard(b);
+  if (n === "Artifact") return artifactCard(b, ctx);
   if (isWrap(n)) return wrapCard(b);
   if (isChapter(n)) return `<div class="divider"><span class="dt">${esc(b.input?.title || "Chapter")}${b.input?.summary ? `<small>${esc(b.input.summary)}</small>` : ""}</span></div>`;
   if (isStartSession(n)) return sessionCard(b);
@@ -397,7 +417,16 @@ export function turnHtml(turn, ctx, isLast) {
           texts.push(b.text);
           html += `<div class="prose">${md(b.text)}</div>`;
         } else if (b.type === "thinking") {
-          if (b.text && b.text.trim()) pending.push(b);
+          const t = (b.text || "").trim();
+          if (!t) continue;
+          flush();
+          if (t.length < 700) {
+            texts.push(t);
+            html += `<div class="prose">${md(t)}</div>`;
+          } else {
+            const secs = b.ms ? ` for ${Math.max(1, Math.round(b.ms / 1000))}s` : "";
+            html += `<details class="thought"><summary>${icon("brain", "sm")} Thought${secs} ${icon("chevRight", "sm chev")}</summary><div class="prose">${md(t)}</div></details>`;
+          }
         } else if (b.type === "tool") {
           ctx.tools[b.id] = b;
           const n = b.name || "";
@@ -415,7 +444,7 @@ export function turnHtml(turn, ctx, isLast) {
           }
           if (isCard(b)) {
             flush();
-            html += cardHtml(b);
+            html += cardHtml(b, ctx);
             continue;
           }
           pending.push(b);
@@ -453,6 +482,7 @@ export function newCtx(details, modelName) {
     turnTexts: {},
     plan: null,
     subagents: details?.subagents || [],
+    artifacts: details?.outputs?.artifacts || [],
     modelName,
   };
 }

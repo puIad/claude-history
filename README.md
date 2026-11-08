@@ -58,8 +58,11 @@ reply's real usage.
 
 - **Cloud sessions** (claude.ai/code) live on Anthropic's servers, not on this computer. Remote
   Control sessions are included, because their transcripts are local.
-- **Cowork**: the archive picks up Cowork transcripts if the desktop app writes them locally. This
-  machine has none (its Cowork VM reports "not supported").
+- **Cowork conversations that ran in the cloud.** This machine's Cowork VM reports "not
+  supported", so its three Cowork sessions ran remotely and their conversations live on Anthropic's
+  servers. They are still listed under a **Cowork** group with what the desktop app keeps locally
+  (space, granted folder, session ID). Cowork transcripts that a machine does store locally
+  (`local-agent-mode-sessions`) are archived and shown like any other session.
 
 ## Build
 
@@ -74,6 +77,11 @@ powershell -File scripts/build.ps1     # release build into bin\ + Start menu sh
 ```
 
 `ui/` has no build step: plain HTML, CSS and ES modules, embedded into the exe at compile time.
+
+`node scripts/drive-app.mjs <outDir>` tests the real app end to end: it starts `bin\claude-history.exe`
+with WebView2 remote debugging, attaches Playwright over CDP and clicks through 17 checks (sidebar,
+sessions, activity groups, thumbnails, search, find, agents, Cowork, usage, settings, sync,
+panels), saving a screenshot per step. `cargo test` covers the parsing helpers.
 `scripts/shot.mjs` screenshots the UI in headless Chrome against `--dump` data;
 `scripts/capture-window.ps1` captures the running app window.
 

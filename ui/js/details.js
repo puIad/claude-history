@@ -48,7 +48,6 @@ function contextSection(c) {
     <div class="ctxbar">${bar}</div>
     <div class="legend">${rows}${deferred}</div>
     <div style="margin-top:8px">${lists}</div>
-    <div class="cost-sub" style="margin-top:8px">At the last reply: ${tokens(c.usage.cache_read)} cached, ${tokens(c.usage.cache_write)} newly cached, ${tokens(c.usage.input)} uncached input, ${tokens(c.usage.output)} output.</div>
   </div>`;
 }
 
@@ -96,7 +95,7 @@ export function detailsHtml(data) {
   const env = d.env || {};
   const folderName = base(env.group_cwd || env.cwd) || env.group;
   const envSec = `<div class="dsec" id="d-env"><div class="dsec-h">Environment</div>
-    <div class="drow">${icon("laptop", "sm")}<span class="grow">${esc(env.group || "Local")}</span>${env.source === "cli" ? `<span class="r">Terminal</span>` : env.profile ? `<span class="r">${esc(env.profile === "Claude" ? "Desktop" : env.profile)}</span>` : ""}</div>
+    <div class="drow">${icon(env.source === "cowork-cloud" ? "cloud" : "laptop", "sm")}<span class="grow">${esc(env.group || "Local")}</span>${env.source === "cowork-cloud" ? `<span class="r">Cloud</span>` : env.source === "cli" ? `<span class="r">Terminal</span>` : env.profile ? `<span class="r">${esc(env.profile === "Claude" ? "Desktop" : env.profile)}</span>` : ""}</div>
     ${env.cwd ? `<div class="drow link" data-reveal="${esc(env.cwd)}" title="${esc(env.cwd)}">${icon("folder", "sm")}<span class="grow">${esc(folderName)} <span class="muted">· ${esc(shortPath(env.cwd, 34))}</span></span></div>` : ""}
     ${env.branch ? `<div class="drow">${icon("branch", "sm")}<span class="grow">${esc(env.branch)}</span>${env.worktree ? `<span class="r">worktree</span>` : ""}</div>` : ""}
     <div class="drow">${icon("monitor", "sm")}<span class="grow">Remote Control</span><span class="toggle ${env.remote_control ? "on" : ""}" title="${env.remote_control ? "Was on for this session" : "Was off"}"></span></div>
@@ -132,5 +131,5 @@ export function detailsHtml(data) {
     ${s.cli_id && s.cli_id !== s.key ? `<dt>Transcript</dt><dd class="mono" data-copy-val="${esc(s.cli_id)}" title="Click to copy">${esc(s.cli_id)}</dd>` : ""}
   </dl>${(d.missing || []).length ? `<div class="cost-sub" style="margin-top:10px">${d.missing.length} earlier transcript${d.missing.length > 1 ? "s were" : " was"} already deleted by Claude before the first archive run.</div>` : ""}</div>`;
 
-  return envSec + contextSection(d.context) + connSec + costSection(s, d.cost) + outputsSection(d.outputs || {}) + chSec + taskSection(d.plan) + subSec + facts;
+  return envSec + contextSection(d.context) + connSec + outputsSection(d.outputs || {}) + chSec + costSection(s, d.cost) + taskSection(d.plan) + subSec + facts;
 }
