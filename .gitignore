@@ -1,0 +1,11 @@
+# The archive holds your full Claude history (gigabytes, private): never commit it
+/archive/
+# Fonts are copied from the local Claude desktop cache at runtime; they are not ours to redistribute
+/ui/fonts/
+/src-tauri/target/
+/src-tauri/gen/
+/node_modules/
+/.playwright-mcp/
+/bin/
+/graphify-out/
+/.claude/

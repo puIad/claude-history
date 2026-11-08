@@ -1,0 +1,10 @@
+# Private history and generated/vendored files: never graph them.
+archive/
+node_modules/
+ui/vendor/
+ui/fonts/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/icons/
+scripts/icon-source.jpg
+package-lock.json

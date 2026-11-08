@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude History</title>
+  <link rel="icon" href="favicon.png">
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="vendor/gsap.min.js"></script>
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- left: sessions -->
+    <aside class="col sidebar" id="sidebar">
+      <div class="bar" data-tauri-drag-region>
+        <button class="ibtn" id="btn-menu" title="Menu">{{menu}}</button>
+        <button class="ibtn" id="btn-sidebar" title="Hide sidebar (Ctrl B)">{{panelLeft}}</button>
+        <button class="ibtn" id="btn-back" title="Back (Alt Left)">{{chevLeft}}</button>
+        <button class="ibtn" id="btn-fwd" title="Forward (Alt Right)">{{chevRight}}</button>
+        <div class="mode-switch">
+          <button class="ibtn" id="btn-search" title="Search sessions (Ctrl K)">{{chatSearch}}</button>
+          <button class="ibtn on" title="Code sessions">{{code}}</button>
+        </div>
+      </div>
+      <div class="side-scroll scroll" id="side-list"></div>
+      <div class="sync-strip" id="sync-strip"></div>
+      <div class="side-foot">
+        <div class="avatar" id="avatar">P</div>
+        <div class="who"><span id="who-name">pulad</span><span class="plan" id="who-plan">· Archive</span></div>
+        <button class="ibtn" id="btn-settings" title="Archive settings">{{settings}}</button>
+      </div>
+    </aside>
+
+    <!-- middle: the conversation -->
+    <main class="col main" id="main">
+      <div class="bar" data-tauri-drag-region>
+        <button class="ibtn" id="btn-sidebar-show" title="Show sidebar (Ctrl B)" style="display:none">{{panelLeft}}</button>
+        <button class="title-btn" id="title-btn" style="display:none"><span id="title-text"></span>{{chevDown}}</button>
+        <div class="spacer" data-tauri-drag-region></div>
+      </div>
+      <div class="findbar" id="findbar">{{search}}<input id="find-input" placeholder="Find in conversation" spellcheck="false" autocomplete="off"><span class="fcount" id="find-count"></span><button class="ibtn" id="find-prev" title="Previous (Shift Enter)">{{chevLeft}}</button><button class="ibtn" id="find-next" title="Next (Enter)">{{chevRight}}</button><button class="ibtn" id="find-x" title="Close (Esc)">{{x}}</button></div>
+      <div class="thread scroll" id="thread"></div>
+      <div class="dock" id="dock" style="display:none">
+        <div class="dock-inner">
+          <button class="to-bottom" id="to-bottom" title="Jump to latest">{{arrowDown}}</button>
+          <div class="status-strip" id="status-strip"></div>
+          <div class="composer"><span class="ibtn" style="pointer-events:none">{{plus}}</span><span class="ph" id="composer-ph">Read only</span><span class="ibtn" style="pointer-events:none;opacity:.5">{{mic}}</span></div>
+          <div class="composer-meta" id="composer-meta"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- right: details -->
+    <aside class="col details" id="details">
+      <div class="bar" data-tauri-drag-region>
+        <button class="ibtn on" id="btn-details" title="Session details (Ctrl .)">{{panelRight}}</button>
+        <button class="ibtn" id="btn-usage" title="Usage">{{chart}}</button>
+        <button class="ibtn" id="btn-sync" title="Archive new history now">{{refresh}}</button>
+        <div class="spacer" style="flex:1;align-self:stretch" data-tauri-drag-region></div>
+        <div class="winctl">
+          <button id="win-min" title="Minimize">{{minimize}}</button>
+          <button id="win-max" title="Maximize">{{maximize}}</button>
+          <button id="win-close" class="close" title="Close">{{x}}</button>
+        </div>
+      </div>
+      <div class="dscroll scroll" id="details-body"></div>
+    </aside>
+  </div>
+
+  <!-- window controls when the details panel is hidden -->
+  <div id="float-ctl" class="winctl" style="position:fixed;top:0;right:0;display:none;z-index:40">
+    <button id="f-details" title="Show details (Ctrl .)">{{panelRight}}</button>
+    <button id="f-min" title="Minimize">{{minimize}}</button>
+    <button id="f-max" title="Maximize">{{maximize}}</button>
+    <button id="f-close" class="close" title="Close">{{x}}</button>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+  <div class="palette" id="palette">
+    <div class="ph">{{search}}<input id="palette-input" placeholder="Search titles and conversations" spellcheck="false" autocomplete="off"><span style="font-size:12px">Esc</span></div>
+    <div class="res scroll" id="palette-res"></div>
+    <div class="hint"><span>↑↓ to move</span><span>Enter to open</span><span id="palette-count"></span></div>
+  </div>
+  <div class="menu" id="menu"></div>
+  <div class="sheet" id="sheet"><div class="sheet-h" id="sheet-h"></div><div class="sheet-b scroll" id="sheet-b"></div></div>
+  <div class="lightbox" id="lightbox"><img id="lightbox-img" alt=""></div>
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

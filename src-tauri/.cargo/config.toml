@@ -1,0 +1,4 @@
+# Built with the GNU toolchain (no Visual Studio). Rust links with its own bundled
+# MinGW; the WinLibs MinGW on PATH is only used for windres (icon + manifest).
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "link-self-contained=yes"]
