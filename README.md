@@ -4,6 +4,7 @@
 [![Downloads](https://img.shields.io/github/downloads/puIad/claude-history/total)](https://github.com/puIad/claude-history/releases)
 ![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078D6)
 ![Built with Tauri and Rust](https://img.shields.io/badge/built%20with-Tauri%20%2B%20Rust-orange)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 ![Offline: no network, no telemetry](https://img.shields.io/badge/offline-no%20telemetry-green)
 
 A Windows desktop app (Rust + Tauri) that keeps every Claude Code and Claude desktop session on this
@@ -159,3 +160,7 @@ src-tauri/src/pricing.rs     model prices and context windows
 ui/js/                       app.js (controller), sidebar, transcript, details, usage, markdown
 ui/css/app.css               theme tokens taken from the desktop app's stylesheet
 ```
+
+## License
+
+[MIT](LICENSE)
