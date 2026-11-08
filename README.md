@@ -4,6 +4,22 @@ A Windows desktop app (Rust + Tauri) that keeps every Claude Code and Claude des
 computer and shows them the way the desktop app's Code tab does. The history stays readable after a
 subscription ends, after Claude cleans up old transcripts, or after an uninstall.
 
+![A conversation with its details panel](docs/screenshots/conversation.png)
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/tool-steps.png" alt="Tool activity opened into diffs and command output"></td>
+    <td><img src="docs/screenshots/question-card.png" alt="An answered question card"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/usage.png" alt="Plan limits and spend per day, model and environment"></td>
+    <td><img src="docs/screenshots/search.png" alt="Search palette"></td>
+  </tr>
+</table>
+
+The screenshots show invented sessions, not real history. `node scripts/demo-data.mjs` writes them to
+`archive/.demo`, and `scripts/shot.mjs` captures the UI against that folder (see Build).
+
 ## Install
 
 Download the `.msi` file from the
@@ -100,7 +116,8 @@ Tauri CLI downloads WiX 3 on first use.
 with WebView2 remote debugging, attaches Playwright over CDP and clicks through 18 checks (sidebar,
 sessions, activity groups, thumbnails, search, find, agents, Cowork, usage, settings, sync,
 panels), saving a screenshot per step. `cargo test` covers the parsing helpers.
-`scripts/shot.mjs` screenshots the UI in headless Chrome against `--dump` data;
+`scripts/shot.mjs` screenshots the UI in headless Chrome against `--dump` data (or the demo data, with
+`DATA=archive/.demo`, served by `python -m http.server 8765` from the repo root);
 `scripts/capture-window.ps1` captures the running app window.
 
 ## Layout
